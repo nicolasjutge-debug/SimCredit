@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Simulateur de remboursement anticipé</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
     --gold:#B4823C; --gold-soft:#E7D3A4; --slate:#4E5C72; --slate-soft:#C6CDD9; --brick:#9B3A28; --line:#DBD5C6;
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;-webkit-font-smoothing:antialiased;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);}
   .wrap{max-width:760px;margin:0 auto;padding:0 20px;}
   header.wrap{padding-top:40px;padding-bottom:6px;}
   .eyebrow{font-family:'IBM Plex Mono',monospace;letter-spacing:.12em;font-size:11.5px;color:var(--slate);text-transform:uppercase;margin:0 0 14px;}
