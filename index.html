@@ -21,7 +21,7 @@
     --gold:#B4823C; --gold-soft:#E7D3A4; --slate:#4E5C72; --slate-soft:#C6CDD9; --brick:#9B3A28; --line:#DBD5C6;
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Source Serif 4',Georgia,serif;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);padding-bottom:max(32px, env(safe-area-inset-bottom,0px));}
   .wrap{max-width:760px;margin:0 auto;padding:0 20px;}
   header.wrap{padding-top:40px;padding-bottom:6px;}
   .eyebrow{font-family:'IBM Plex Mono',monospace;letter-spacing:.12em;font-size:11.5px;color:var(--slate);text-transform:uppercase;margin:0 0 14px;}
@@ -31,8 +31,8 @@
   section, .card{background:var(--paper-raised);border:1px solid var(--line);border-radius:16px;padding:22px 20px;margin-bottom:16px;overflow:hidden;}
 
   .segmented{display:flex;gap:8px;margin:0 0 8px;}
-  .seg-btn{flex:1;border:1px solid var(--line);background:var(--paper-raised);border-radius:12px;padding:10px 6px;font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:500;color:var(--ink-soft);cursor:pointer;text-align:center;transition:all .15s ease;}
-  .seg-btn span{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:400;margin-top:3px;opacity:.75;}
+  .seg-btn{flex:1;min-width:0;border:1px solid var(--line);background:var(--paper-raised);border-radius:12px;padding:10px 6px;font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:500;color:var(--ink-soft);cursor:pointer;text-align:center;transition:all .15s ease;}
+  .seg-btn span{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:400;margin-top:3px;opacity:.75;overflow-wrap:anywhere;}
   .seg-btn.active{background:var(--ink);border-color:var(--ink);color:var(--paper);}
   .seg-btn.active span{opacity:.85;}
   .natural-end{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);margin:0 0 18px;line-height:1.6;}
@@ -59,8 +59,9 @@
   .input-euro input:focus{outline:none;}
   .input-euro span{padding:0 12px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
   input[type=range]{width:100%;margin-top:12px;accent-color:var(--gold);}
-  input[type=month], input[type=date]{width:100%;max-width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:15px;background:var(--paper);color:var(--ink);margin-top:6px;}
-  input[type=month]:focus, input[type=date]:focus{outline:none;border-color:var(--slate);}
+  input[type=month], input[type=date]{border:none;background:transparent;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--ink);width:100%;min-width:0;}
+  input[type=month]:focus, input[type=date]:focus{outline:none;}
+  .input-date{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper);margin-top:6px;}
   .rate-value{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;margin-top:2px;}
   .hint{font-size:12px;color:var(--ink-soft);margin-top:10px;line-height:1.55;}
 
@@ -99,7 +100,8 @@
   .btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
   .override-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin:6px 0 0;line-height:1.6;}
   .date-amount-row{margin-top:6px;}
-  .date-amount-row input[type=date]{width:auto;display:block;margin-top:0;margin-bottom:8px;padding:7px 12px;font-size:13px;color:var(--ink-soft);border-radius:8px;}
+  .date-amount-row .input-date{width:auto;display:inline-block;margin-top:0;margin-bottom:8px;border-radius:8px;}
+  .date-amount-row .input-date input{padding:7px 12px;font-size:13px;color:var(--ink-soft);}
   .date-amount-row .input-euro{margin-top:0;}
   .hist-list{margin-top:4px;}
   .hist-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);}
@@ -150,7 +152,7 @@
   <section class="card" id="customDateCard">
     <h2>Simuler une date choisie</h2>
     <label>Date cible pour le remboursement anticipé
-      <input type="month" id="targetDateInput" min="2026-08">
+      <div class="input-date"><input type="month" id="targetDateInput" min="2026-08"></div>
     </label>
     <div class="preset-row">
       <button type="button" class="preset-btn" id="preset366">Fin naturelle prêt 366 — juin 2033</button>
@@ -175,7 +177,7 @@
     </label>
     <label>Journal des relevés (optionnel)
       <div class="date-amount-row">
-        <input type="date" id="balanceEntryDate">
+        <div class="input-date"><input type="date" id="balanceEntryDate"></div>
         <div class="input-euro"><input type="number" id="balanceEntryAmount" step="100" min="0" placeholder="montant"><span>€</span></div>
       </div>
       <div class="btn-row"><button type="button" class="preset-btn" id="addBalanceEntry">Ajouter</button></div>
@@ -193,7 +195,7 @@
     <p class="hint">Si le solde réel communiqué par votre Caisse de Crédit Mutuel diffère du tableau d'amortissement d'origine (remboursement anticipé partiel, régularisation…), enregistrez un relevé daté ici. Le plus récent des relevés fait foi ; la date de fin et toutes les projections ci-dessus sont recalculées automatiquement, sur la base d'un amortissement standard à la mensualité actuelle du prêt.</p>
     <label>Prêt 366 (0,75 %)
       <div class="date-amount-row">
-        <input type="date" id="override366Date">
+        <div class="input-date"><input type="date" id="override366Date"></div>
         <div class="input-euro"><input type="number" id="override366" step="10" min="0" placeholder="ex. 35816,35"><span>€</span></div>
       </div>
       <div class="btn-row">
@@ -205,7 +207,7 @@
     </label>
     <label>Prêt 365 (1,06 %)
       <div class="date-amount-row">
-        <input type="date" id="override365Date">
+        <div class="input-date"><input type="date" id="override365Date"></div>
         <div class="input-euro"><input type="number" id="override365" step="10" min="0" placeholder="ex. 51257,24"><span>€</span></div>
       </div>
       <div class="btn-row">
@@ -218,8 +220,16 @@
   </section>
 
   <section class="card" id="syncCard">
-    <h2>Sauvegarde en ligne</h2>
-    <p class="hint">Synchronisez vos réglages entre iPhone et ordinateur via <a href="https://jsonbin.io" target="_blank" rel="noopener">jsonbin.io</a> (gratuit) : créez un compte, copiez votre clé « X-Master-Key » depuis la page API Keys, et collez-la ci-dessous. Cette clé reste stockée uniquement sur cet appareil et n'est envoyée qu'à jsonbin.io.</p>
+    <h2>Sauvegarde</h2>
+    <p class="hint">Le plus simple, sans compte : exportez un fichier, gardez-le (Fichiers, e-mail, iCloud…), et réimportez-le sur n'importe quel appareil.</p>
+    <div class="btn-row">
+      <button type="button" class="preset-btn" id="exportFileBtn">Exporter (fichier)</button>
+      <button type="button" class="preset-btn" id="importFileBtn">Importer (fichier)</button>
+      <input type="file" id="importFileInput" accept="application/json,.json" style="display:none;">
+    </div>
+    <p class="result-note" id="fileSyncStatus"></p>
+    <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+    <p class="hint">Ou en ligne, pour synchroniser automatiquement entre iPhone et ordinateur via <a href="https://jsonbin.io" target="_blank" rel="noopener">jsonbin.io</a> (gratuit) : créez un compte, copiez votre clé « X-Master-Key » depuis la page API Keys, et collez-la ci-dessous. Cette clé reste stockée uniquement sur cet appareil et n'est envoyée qu'à jsonbin.io.</p>
     <label>Clé API JsonBin (X-Master-Key)
       <input type="password" id="jsonbinKeyInput" placeholder="$2b$10$…">
     </label>
@@ -228,8 +238,8 @@
       <p class="hint">Rempli automatiquement au premier export. Collez un ID existant ici pour restaurer une sauvegarde depuis un autre appareil.</p>
     </label>
     <div class="btn-row">
-      <button type="button" class="preset-btn" id="exportBtn">Exporter (sauvegarder)</button>
-      <button type="button" class="preset-btn" id="importBtn">Importer (restaurer)</button>
+      <button type="button" class="preset-btn" id="exportBtn">Exporter (en ligne)</button>
+      <button type="button" class="preset-btn" id="importBtn">Importer (en ligne)</button>
     </div>
     <p class="result-note" id="syncStatus"></p>
   </section>
@@ -260,7 +270,7 @@
 
 <footer>
   <p>Estimation indicative construite à partir des tableaux d'amortissement transmis (soldes réels par échéance) et d'un rendement de placement hypothétique et réglable. Elle ne remplace pas un chiffrage officiel&nbsp;: demandez à votre Caisse de Crédit Mutuel une confirmation du solde exact et du montant de l'indemnité avant tout remboursement anticipé.</p>
-  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-07-20-v7</p>
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-07-22-v10</p>
 </footer>
 
 <script>
@@ -779,6 +789,48 @@ function loadLocal(){
   }catch(e){ return false; }
 }
 
+function exportToFile(){
+  const statusEl = document.getElementById('fileSyncStatus');
+  try{
+    const payload = collectState();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'simulateur-remboursement-sauvegarde.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    statusEl.textContent = 'Fichier exporté.';
+    statusEl.className = 'result-note sync-ok';
+  }catch(err){
+    statusEl.textContent = "Échec de l'export du fichier.";
+    statusEl.className = 'result-note sync-error';
+  }
+}
+function importFromFile(file){
+  const statusEl = document.getElementById('fileSyncStatus');
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const obj = JSON.parse(e.target.result);
+      applyState(obj);
+      saveLocal();
+      statusEl.textContent = 'Restauré depuis le fichier.';
+      statusEl.className = 'result-note sync-ok';
+    }catch(err){
+      statusEl.textContent = 'Fichier invalide — impossible de le lire.';
+      statusEl.className = 'result-note sync-error';
+    }
+  };
+  reader.onerror = ()=>{
+    statusEl.textContent = 'Échec de la lecture du fichier.';
+    statusEl.className = 'result-note sync-error';
+  };
+  reader.readAsText(file);
+}
+
 async function exportToJsonBin(){
   const statusEl = document.getElementById('syncStatus');
   const key = document.getElementById('jsonbinKeyInput').value.trim();
@@ -861,6 +913,15 @@ document.getElementById('add366').addEventListener('click', ()=>addLoanEntry('36
 document.getElementById('reset366').addEventListener('click', ()=>resetLoanHistory('366'));
 document.getElementById('add365').addEventListener('click', ()=>addLoanEntry('365'));
 document.getElementById('reset365').addEventListener('click', ()=>resetLoanHistory('365'));
+document.getElementById('exportFileBtn').addEventListener('click', exportToFile);
+document.getElementById('importFileBtn').addEventListener('click', ()=>{
+  document.getElementById('importFileInput').click();
+});
+document.getElementById('importFileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) importFromFile(file);
+  e.target.value = '';
+});
 document.getElementById('exportBtn').addEventListener('click', exportToJsonBin);
 document.getElementById('importBtn').addEventListener('click', importFromJsonBin);
 
