@@ -111,9 +111,15 @@
   .hist-del{background:none;border:none;color:var(--brick);font-size:17px;cursor:pointer;padding:0 2px;line-height:1;}
   .hist-empty{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-faint);margin-top:6px;}
 
-  /* Correction PC uniquement : supprime le débordement horizontal / la barre de défilement indésirable au-delà de la largeur du cadre (760px). Sans effet sur iPhone (viewport toujours < 761px). */
+  /* Correction PC uniquement : supprime le débordement horizontal, et remplace la barre de défilement native (grise, épaisse, collée à l'angle) par une version fine aux couleurs du site. Sans effet sur iPhone (viewport toujours < 761px). */
   @media (min-width: 761px){
     html, body{ overflow-x:hidden; }
+
+    html{ scrollbar-width:thin; scrollbar-color:var(--slate-soft) var(--paper); }
+    ::-webkit-scrollbar{ width:10px; }
+    ::-webkit-scrollbar-track{ background:var(--paper); }
+    ::-webkit-scrollbar-thumb{ background:var(--slate-soft); border-radius:20px; border:2px solid var(--paper); }
+    ::-webkit-scrollbar-thumb:hover{ background:var(--slate); }
   }
 </style>
 </head>
