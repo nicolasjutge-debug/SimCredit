@@ -94,6 +94,7 @@
 
   input[type=password], input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;background:var(--paper);color:var(--ink);margin-top:6px;}
   input[type=password]:focus, input[type=text]:focus{outline:none;border-color:var(--slate);}
+  .input-euro:focus-within, .input-date:focus-within{border-color:var(--slate);box-shadow:0 0 0 3px rgba(78,92,114,0.15);}
   .hint a{color:var(--slate);}
   .sync-ok{color:var(--slate);font-weight:500;}
   .sync-error{color:var(--brick);font-weight:500;}
@@ -120,6 +121,65 @@
     ::-webkit-scrollbar-track{ background:var(--paper); }
     ::-webkit-scrollbar-thumb{ background:var(--slate-soft); border-radius:20px; border:2px solid var(--paper); }
     ::-webkit-scrollbar-thumb:hover{ background:var(--slate); }
+  }
+
+  /* Confort de lecture PC : la mise en page ci-dessus a été pensée pour un écran tenu à
+     30 cm (iPhone), d'où des polices et espacements compacts. Au-delà de 761px, tout
+     remonte d'un cran pour une lecture à distance de bureau : colonne plus large, polices
+     et espacements agrandis, boutons pensés pour la souris. En dessous de 761px, rien ne change. */
+  @media (min-width: 761px){
+    .wrap{ max-width:900px; padding:0 32px; }
+    header.wrap{ padding-top:64px; padding-bottom:10px; }
+
+    .eyebrow{ font-size:12.5px; margin-bottom:18px; }
+    h1{ font-size:clamp(34px, 3.4vw, 46px); margin-bottom:16px; }
+    .sub{ font-size:16px; line-height:1.65; margin-bottom:36px; }
+
+    section, .card{ padding:32px 36px; margin-bottom:20px; border-radius:18px; }
+
+    .segmented{ gap:10px; margin-bottom:10px; }
+    .seg-btn{ padding:14px 10px; font-size:14px; border-radius:14px; cursor:pointer; }
+    .seg-btn span{ font-size:11.5px; margin-top:4px; }
+    .seg-btn:not(.active):hover{ border-color:var(--slate); color:var(--ink); }
+    .natural-end{ font-size:12.5px; margin-bottom:24px; }
+
+    .legend{ font-size:12.5px; gap:24px; margin-top:16px; }
+
+    .result-label{ font-size:12.5px; }
+    .result-date{ font-size:clamp(30px, 3vw, 42px); margin-bottom:24px; }
+    .result-grid{ gap:20px 16px; }
+    .result-grid span{ font-size:13px; }
+    .result-grid strong{ font-size:20px; }
+    .result-note{ font-size:13.5px; margin-top:20px; padding-top:14px; }
+
+    h2{ font-size:18px; margin-bottom:20px; }
+    label{ font-size:14.5px; margin-bottom:22px; }
+    .input-euro input{ font-size:17px; padding:12px 14px; }
+    .input-euro span{ font-size:12.5px; padding:0 14px; }
+    input[type=month], input[type=date]{ font-size:16px; padding:12px 14px; }
+    .rate-value{ font-size:19px; }
+    .hint{ font-size:13px; }
+
+    .preset-row{ gap:10px; }
+    .preset-btn{ padding:9px 16px; font-size:11.5px; cursor:pointer; }
+
+    .note-card p{ font-size:15px; line-height:1.7; }
+
+    details summary{ font-size:14.5px; cursor:pointer; }
+    .table-scroll{ max-height:420px; }
+    table{ font-size:13px; }
+    th, td{ padding:9px 8px; }
+
+    footer{ padding:28px 20px 64px; }
+    footer p{ font-size:13px; max-width:680px; }
+  }
+
+  /* Grand écran : les deux notes explicatives (garantie / calcul IRA), de nature et de
+     longueur comparables, se placent côte à côte pour occuper la largeur. Le reste garde
+     volontairement une colonne unique — plus lisible qu'un étirement sans raison. */
+  @media (min-width: 1100px){
+    .wrap{ max-width:1040px; }
+    .note-pair{ display:grid; grid-template-columns:1fr 1fr; column-gap:24px; }
   }
 </style>
 </head>
@@ -255,17 +315,19 @@
     <p class="result-note" id="syncStatus"></p>
   </section>
 
-  <section class="note-card">
-    <h2>Garantie du crédit — caution AXA France IARD</h2>
-    <p>Vos deux prêts sont garantis par une <strong>caution solidaire AXA France IARD</strong> (et non par Crédit Logement)&nbsp;: 835,95&nbsp;€ pour le prêt 365, 760,76&nbsp;€ pour le prêt 366, soit <strong>1&nbsp;596,71&nbsp;€</strong> au total (commission de 1,27&nbsp;% sur 125&nbsp;930&nbsp;€ cautionnés).</p>
-    <p>Ce coût a été réglé à la mise en place du prêt. Selon les conditions générales de votre offre, il <strong>n'est jamais restitué, même partiellement</strong>, y compris en cas de remboursement anticipé total ou partiel. Il ne s'ajoute donc pas au montant à mobiliser ci-dessus, et ne peut pas être récupéré.</p>
-  </section>
+  <div class="note-pair">
+    <section class="note-card">
+      <h2>Garantie du crédit — caution AXA France IARD</h2>
+      <p>Vos deux prêts sont garantis par une <strong>caution solidaire AXA France IARD</strong> (et non par Crédit Logement)&nbsp;: 835,95&nbsp;€ pour le prêt 365, 760,76&nbsp;€ pour le prêt 366, soit <strong>1&nbsp;596,71&nbsp;€</strong> au total (commission de 1,27&nbsp;% sur 125&nbsp;930&nbsp;€ cautionnés).</p>
+      <p>Ce coût a été réglé à la mise en place du prêt. Selon les conditions générales de votre offre, il <strong>n'est jamais restitué, même partiellement</strong>, y compris en cas de remboursement anticipé total ou partiel. Il ne s'ajoute donc pas au montant à mobiliser ci-dessus, et ne peut pas être récupéré.</p>
+    </section>
 
-  <section class="note-card">
-    <h2>Comment l'indemnité (IRA) est calculée</h2>
-    <p>Selon l'article VIII-11 de votre offre de prêt, l'indemnité de remboursement anticipé équivaut à <strong>6 mois d'intérêts</strong> calculés au taux du prêt sur le capital remboursé, plafonnée à <strong>3&nbsp;% du capital dû</strong>.</p>
-    <p>Avec des taux de 0,75&nbsp;% et 1,06&nbsp;%, ce plafond n'est jamais atteint&nbsp;: l'indemnité réelle représente directement <strong>0,375&nbsp;%</strong> (prêt 366) ou <strong>0,53&nbsp;%</strong> (prêt 365) du capital restant dû.</p>
-  </section>
+    <section class="note-card">
+      <h2>Comment l'indemnité (IRA) est calculée</h2>
+      <p>Selon l'article VIII-11 de votre offre de prêt, l'indemnité de remboursement anticipé équivaut à <strong>6 mois d'intérêts</strong> calculés au taux du prêt sur le capital remboursé, plafonnée à <strong>3&nbsp;% du capital dû</strong>.</p>
+      <p>Avec des taux de 0,75&nbsp;% et 1,06&nbsp;%, ce plafond n'est jamais atteint&nbsp;: l'indemnité réelle représente directement <strong>0,375&nbsp;%</strong> (prêt 366) ou <strong>0,53&nbsp;%</strong> (prêt 365) du capital restant dû.</p>
+    </section>
+  </div>
 
   <details class="card">
     <summary>Voir le détail mois par mois <span id="detailCount"></span></summary>
@@ -281,7 +343,7 @@
 
 <footer>
   <p>Estimation indicative construite à partir des tableaux d'amortissement transmis (soldes réels par échéance) et d'un rendement de placement hypothétique et réglable. Elle ne remplace pas un chiffrage officiel&nbsp;: demandez à votre Caisse de Crédit Mutuel une confirmation du solde exact et du montant de l'indemnité avant tout remboursement anticipé.</p>
-  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-07-22-v10</p>
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-08-02-v11</p>
 </footer>
 
 <script>
