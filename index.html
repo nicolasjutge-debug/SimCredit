@@ -131,7 +131,7 @@
      d'appareil. La mise en page ci-dessus reste celle pensée pour un iPhone tenu à 30 cm ;
      ici tout remonte franchement d'un cran pour une lecture à distance de bureau. */
   @media (min-width: 761px) and (hover: hover) and (pointer: fine){
-    .wrap{ max-width:960px; padding:0 40px; }
+    .wrap{ max-width:1000px; padding:0 40px; }
     header.wrap{ padding-top:72px; padding-bottom:12px; }
 
     .eyebrow{ font-size:13px; margin-bottom:20px; }
@@ -177,12 +177,26 @@
     footer p{ font-size:14px; max-width:720px; }
   }
 
-  /* Grand écran + souris : les deux notes explicatives (garantie / calcul IRA), de nature
-     et de longueur comparables, se placent côte à côte pour occuper la largeur. Le reste
-     garde volontairement une colonne unique — plus lisible qu'un étirement sans raison. */
+  /* Grand écran + souris : plutôt que d'étirer une colonne unique dans le vide, les cartes
+     qui vont naturellement ensemble se placent côte à côte — résultat auto / date choisie,
+     puis les deux réglages (hypothèses / ajustement du capital dû) — pour une vraie mise en
+     page à deux colonnes. Le graphique et le tableau détaillé restent pleine largeur, plus
+     lisibles ainsi qu'étirés sur deux colonnes. */
   @media (min-width: 1100px) and (hover: hover) and (pointer: fine){
-    .wrap{ max-width:1160px; }
-    .note-pair{ display:grid; grid-template-columns:1fr 1fr; column-gap:28px; }
+    .wrap{ max-width:1280px; }
+    div.wrap{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      column-gap:28px;
+    }
+    div.wrap > .segmented,
+    div.wrap > .natural-end,
+    div.wrap > .chart-card,
+    div.wrap > #syncCard,
+    div.wrap > .note-pair,
+    div.wrap > details{
+      grid-column:1 / -1;
+    }
   }
 </style>
 </head>
