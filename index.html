@@ -276,6 +276,16 @@
       <div class="rate-value"><span id="rateValue">3,20 %</span></div>
       <p class="hint">Le placement affiché en répartition est investi à 69,8&nbsp;% en fonds €&nbsp;(garanti, ≈2,2&nbsp;% net en 2025) et 30,2&nbsp;% en unités de compte diversifiées. 3,20&nbsp;% est une hypothèse médiane, pas une garantie — les UC comportent un risque de perte en capital. Ajustez le curseur pour tester d'autres scénarios.</p>
     </label>
+    <label>Estimation cible (optionnel)
+      <p class="hint">Si un relevé ou une simulation de votre banque indique une valeur estimée à une date future (ex.&nbsp;: « estimation en 2029 »), ajoutez-la ici, centimes compris&nbsp;: le rendement annuel qu'il faudrait pour l'atteindre est calculé automatiquement, à comparer avec l'hypothèse ci-dessus.</p>
+      <div class="date-amount-row">
+        <div class="input-date"><input type="date" id="estimateEntryDate"></div>
+        <div class="input-euro"><input type="number" id="estimateEntryAmount" step="0.01" min="0" placeholder="montant"><span>€</span></div>
+      </div>
+      <div class="btn-row"><button type="button" class="preset-btn" id="addEstimateEntry">Ajouter</button></div>
+      <p class="override-info" id="estimateInfo"></p>
+      <div class="hist-list" id="estimateHistoryList"></div>
+    </label>
   </section>
 
   <section class="card" id="loanOverrideCard">
@@ -360,7 +370,7 @@
 
 <footer>
   <p>Estimation indicative construite à partir des tableaux d'amortissement transmis (soldes réels par échéance) et d'un rendement de placement hypothétique et réglable. Elle ne remplace pas un chiffrage officiel&nbsp;: demandez à votre Caisse de Crédit Mutuel une confirmation du solde exact et du montant de l'indemnité avant tout remboursement anticipé.</p>
-  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-08-03-v12</p>
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-08-04-v14</p>
 </footer>
 
 <script>
@@ -371,6 +381,12 @@ const loan365_flat_dates = ["2026-08-05","2026-09-05","2026-10-05","2026-11-05",
 let loan365 = loan365_flat_dates.map((d,i)=>[38+i, d, 51257.24]);
 const loan365_tail = [[120,"2033-06-05",50804.50],[121,"2033-07-05",50351.56],[122,"2033-08-05",49898.22],[123,"2033-09-05",49444.48],[124,"2033-10-05",48990.34],[125,"2033-11-05",48535.79],[126,"2033-12-05",48080.84],[127,"2034-01-05",47625.49],[128,"2034-02-05",47169.74],[129,"2034-03-05",46713.59],[130,"2034-04-05",46257.03],[131,"2034-05-05",45800.07],[132,"2034-06-05",45342.71],[133,"2034-07-05",44884.94],[134,"2034-08-05",44426.77],[135,"2034-09-05",43968.19],[136,"2034-10-05",43509.21],[137,"2034-11-05",43049.82],[138,"2034-12-05",42590.03],[139,"2035-01-05",42129.83],[140,"2035-02-05",41669.22],[141,"2035-03-05",41208.21],[142,"2035-04-05",40746.79],[143,"2035-05-05",40284.96],[144,"2035-06-05",39822.73],[145,"2035-07-05",39360.09],[146,"2035-08-05",38897.04],[147,"2035-09-05",38433.58],[148,"2035-10-05",37969.71],[149,"2035-11-05",37505.43],[150,"2035-12-05",37040.74],[151,"2036-01-05",36575.64],[152,"2036-02-05",36110.13],[153,"2036-03-05",35644.21],[154,"2036-04-05",35177.88],[155,"2036-05-05",34711.13],[156,"2036-06-05",34243.97],[157,"2036-07-05",33776.40],[158,"2036-08-05",33308.42],[159,"2036-09-05",32840.02],[160,"2036-10-05",32371.21],[161,"2036-11-05",31901.98],[162,"2036-12-05",31432.34],[163,"2037-01-05",30962.29],[164,"2037-02-05",30491.82],[165,"2037-03-05",30020.93],[166,"2037-04-05",29549.63],[167,"2037-05-05",29077.91],[168,"2037-06-05",28605.78],[169,"2037-07-05",28133.23],[170,"2037-08-05",27660.26],[171,"2037-09-05",27186.87],[172,"2037-10-05",26713.07],[173,"2037-11-05",26238.85],[174,"2037-12-05",25764.21],[175,"2038-01-05",25289.15],[176,"2038-02-05",24813.67],[177,"2038-03-05",24337.77],[178,"2038-04-05",23861.45],[179,"2038-05-05",23384.71],[180,"2038-06-05",22907.55],[181,"2038-07-05",22429.97],[182,"2038-08-05",21951.96],[183,"2038-09-05",21473.53],[184,"2038-10-05",20994.68],[185,"2038-11-05",20515.41],[186,"2038-12-05",20035.71],[187,"2039-01-05",19555.59],[188,"2039-02-05",19075.04],[189,"2039-03-05",18594.07],[190,"2039-04-05",18112.67],[191,"2039-05-05",17630.85],[192,"2039-06-05",17148.60],[193,"2039-07-05",16665.93],[194,"2039-08-05",16182.83],[195,"2039-09-05",15699.30],[196,"2039-10-05",15215.35],[197,"2039-11-05",14730.97],[198,"2039-12-05",14246.16],[199,"2040-01-05",13760.92],[200,"2040-02-05",13275.26],[201,"2040-03-05",12789.17],[202,"2040-04-05",12302.65],[203,"2040-05-05",11815.70],[204,"2040-06-05",11328.32],[205,"2040-07-05",10840.51],[206,"2040-08-05",10352.27],[207,"2040-09-05",9863.59],[208,"2040-10-05",9374.48],[209,"2040-11-05",8884.94],[210,"2040-12-05",8394.97],[211,"2041-01-05",7904.57],[212,"2041-02-05",7413.73],[213,"2041-03-05",6922.46],[214,"2041-04-05",6430.75],[215,"2041-05-05",5938.61],[216,"2041-06-05",5446.04],[217,"2041-07-05",4953.03],[218,"2041-08-05",4459.59],[219,"2041-09-05",3965.71],[220,"2041-10-05",3471.39],[221,"2041-11-05",2976.64],[222,"2041-12-05",2481.45],[223,"2042-01-05",1985.82],[224,"2042-02-05",1489.75],[225,"2042-03-05",993.25],[226,"2042-04-05",496.31],[227,"2042-05-05",0.00]];
 loan365 = loan365.concat(loan365_tail);
+
+// Fin du différé d'amortissement du prêt 365 : avant cet index, le capital reste plat (intérêts
+// seuls) ; l'amortissement du capital ne démarre qu'à partir de l'échéance 120 (05/06/2033 — date
+// à laquelle le prêt 366 est soldé), cf. loan365_tail ci-dessus. Utilisé par applyLoanFromHistory()
+// pour que le recalcul après un relevé manuel respecte cette date de bascule fixe.
+const DEFER_END_IDX_365 = loan365_flat_dates.length;
 
 let CURRENT_L365 = 51257.24;
 let CURRENT_L366 = 35816.35;
@@ -423,16 +439,22 @@ function monthsBetween(fromISO, toISO){
   return months;
 }
 // startBalance = valeur AVANT le paiement de l'échéance startIdx (mêmes conventions que le tableau d'origine pour startIdx=0).
-function buildAmortizedSchedule(startBalance, annualRate, payment, startIdx){
+// amortStartIdx (optionnel) = index à partir duquel le capital commence réellement à s'amortir ; tant que
+// idx < amortStartIdx, le solde reste plat (phase différée, intérêts seuls — cas du prêt 365 avant juin 2033).
+// Par défaut amortStartIdx = startIdx, donc amortissement immédiat (comportement d'origine, cas du prêt 366).
+function buildAmortizedSchedule(startBalance, annualRate, payment, startIdx, amortStartIdx){
   if(startIdx === undefined) startIdx = 0;
+  if(amortStartIdx === undefined) amortStartIdx = startIdx;
   const mr = annualRate/12;
   const arr = [];
   let bal = startBalance;
   let idx = startIdx;
   let steps = 0;
   while(bal > 0.5 && steps < 600){
-    bal = bal*(1+mr) - payment;
-    if(bal < 0) bal = 0;
+    if(idx >= amortStartIdx){
+      bal = bal*(1+mr) - payment;
+      if(bal < 0) bal = 0;
+    }
     arr.push([38+idx, dateAtIndex(idx), Math.round(bal*100)/100]);
     idx++;
     steps++;
@@ -655,6 +677,7 @@ function render(){
   renderTable(rows, cross);
   renderNaturalEnd();
   renderCustom();
+  renderEstimateInfo();
 }
 
 function updateSegLabels(){
@@ -737,6 +760,92 @@ function renderBalanceHistory(){
   });
 }
 
+// ---- Estimation cible (taux nécessaire pour l'atteindre) ----
+let estimateHistory = [];
+function sortHistoryAsc(hist){
+  hist.sort((a,b)=> a.date>b.date ? 1 : (a.date<b.date ? -1 : 0));
+  return hist;
+}
+function futureValueAt(m, balance0, contrib, annualRate){
+  const mr = Math.pow(1+annualRate, 1/12) - 1;
+  if(Math.abs(mr) < 1e-9) return balance0 + contrib*m;
+  const growth = Math.pow(1+mr, m);
+  return balance0*growth + contrib*(growth-1)/mr;
+}
+function requiredRateForTarget(m, target, balance0, contrib, lo, hi){
+  for(let i=0;i<80;i++){
+    const mid = (lo+hi)/2;
+    const fv = futureValueAt(m, balance0, contrib, mid);
+    if(fv < target) lo = mid; else hi = mid;
+  }
+  return (lo+hi)/2;
+}
+function applyEstimateRate(rate){
+  state.rate = Math.round(rate*100000)/100000;
+  const pct = Math.round(state.rate*10000)/100;
+  document.getElementById('rateInput').value = pct;
+  document.getElementById('rateValue').textContent = pct.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' %';
+  render();
+  saveLocal();
+}
+function renderEstimateInfo(){
+  const infoEl = document.getElementById('estimateInfo');
+  if(!infoEl) return;
+  if(!estimateHistory.length){ infoEl.innerHTML=''; return; }
+  const next = estimateHistory[0]; // trié par date croissante : la prochaine échéance dans le futur
+  const m = monthIndexFromDate(next.date);
+  if(m<=0){
+    infoEl.innerHTML = `${fmtDateFR(next.date)} n'est pas une date future : aucun calcul possible.`;
+    return;
+  }
+  const fvAt0 = futureValueAt(m, state.balance0, state.contrib, 0);
+  if(fvAt0 >= next.amount){
+    infoEl.innerHTML = `Avec le versement actuel (${fmtEUR0(state.contrib)}/mois), cette estimation serait déjà dépassée même sans aucun rendement.`;
+    return;
+  }
+  const fvAt6 = futureValueAt(m, state.balance0, state.contrib, 0.06);
+  if(fvAt6 < next.amount){
+    infoEl.innerHTML = `Même au maximum du curseur (6&nbsp;%), cette estimation ne serait pas atteinte avec le versement actuel — vérifiez le montant, la date, ou augmentez le versement mensuel.`;
+    return;
+  }
+  const rate = requiredRateForTarget(m, next.amount, state.balance0, state.contrib, 0, 0.06);
+  const pctStr = (Math.round(rate*10000)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  infoEl.innerHTML = `Pour atteindre ${fmtEUR0(next.amount)} en ${fmtMonthYear(next.date)}, il faudrait un rendement annuel d'environ <strong>${pctStr}&nbsp;%</strong>. <button type="button" class="preset-btn" id="applyEstimateRateBtn" style="margin-top:10px;">Appliquer ce taux</button>`;
+  const btn = document.getElementById('applyEstimateRateBtn');
+  if(btn) btn.addEventListener('click', ()=>applyEstimateRate(rate));
+}
+function addEstimateEntry(){
+  const dateEl = document.getElementById('estimateEntryDate');
+  const amtEl = document.getElementById('estimateEntryAmount');
+  const date = dateEl.value;
+  const amount = parseFloat(amtEl.value);
+  if(!date || isNaN(amount) || amount<0) return;
+  estimateHistory = estimateHistory.filter(e=>e.date!==date);
+  estimateHistory.push({date, amount});
+  sortHistoryAsc(estimateHistory);
+  amtEl.value = '';
+  renderEstimateHistory();
+  renderEstimateInfo();
+  saveLocal();
+}
+function deleteEstimateEntry(date){
+  estimateHistory = estimateHistory.filter(e=>e.date!==date);
+  renderEstimateHistory();
+  renderEstimateInfo();
+  saveLocal();
+}
+function renderEstimateHistory(){
+  const el = document.getElementById('estimateHistoryList');
+  if(!el) return;
+  if(!estimateHistory.length){ el.innerHTML = '<p class="hist-empty">Aucune estimation enregistrée pour l\u2019instant.</p>'; return; }
+  el.innerHTML = estimateHistory.map(e=>
+    `<div class="hist-row"><span class="hist-date">${fmtDateFR(e.date)}</span><span class="hist-amount">${fmtEUR0(e.amount)}</span><button type="button" class="hist-del" data-date="${e.date}" aria-label="Supprimer">×</button></div>`
+  ).join('');
+  el.querySelectorAll('.hist-del').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteEstimateEntry(btn.dataset.date));
+  });
+}
+
 // ---- Journal : restant dû par prêt (366 / 365) ----
 function applyLoanFromHistory(loanKey){
   const hist = loanKey==='366' ? loan366History : loan365History;
@@ -750,15 +859,22 @@ function applyLoanFromHistory(loanKey){
     let newCurrent, newArr;
     if(k < 0){
       // Le relevé est antérieur à la grille (== repère "aujourd'hui") : comportement d'origine.
+      // Pour le 365, le capital reste toutefois plat jusqu'à la fin du différé (05/06/2033),
+      // même si le relevé est daté d'aujourd'hui : l'amortissement ne peut pas démarrer plus tôt
+      // que ce que prévoit le contrat.
       newCurrent = entry.amount;
-      newArr = buildAmortizedSchedule(entry.amount, rate, pay, 0);
+      const amortStart = loanKey==='365' ? DEFER_END_IDX_365 : 0;
+      newArr = buildAmortizedSchedule(entry.amount, rate, pay, 0, amortStart);
     } else {
       // Le relevé tombe sur/après un point de la grille : le tableau d'origine fait foi avant cette date,
-      // le relevé fixe la valeur à cette date, et l'amortissement standard reprend ensuite.
+      // le relevé fixe la valeur à cette date, et l'amortissement standard reprend ensuite
+      // (dès l'échéance suivante pour le 366 ; seulement à partir de la fin du différé pour le 365,
+      // même si le relevé lui-même est antérieur au 05/06/2033).
       newCurrent = origCurrent;
       const prefix = origArr.slice(0, k);
       const atEntry = [[38+k, dateAtIndex(k), entry.amount]];
-      const continuation = buildAmortizedSchedule(entry.amount, rate, pay, k+1);
+      const amortStart = loanKey==='365' ? DEFER_END_IDX_365 : (k+1);
+      const continuation = buildAmortizedSchedule(entry.amount, rate, pay, k+1, amortStart);
       newArr = prefix.concat(atEntry, continuation);
     }
     const end = newArr.length ? newArr[newArr.length-1][1] : dateAtIndex(0);
@@ -831,7 +947,8 @@ function collectState(){
     loan: state.loan,
     balanceHistory: balanceHistory,
     loan366History: loan366History,
-    loan365History: loan365History
+    loan365History: loan365History,
+    estimateHistory: estimateHistory
   };
 }
 function applyState(obj){
@@ -855,13 +972,16 @@ function applyState(obj){
   else if(obj.override366) loan366History = [{date: todayISO(), amount: parseFloat(obj.override366)}]; // migration ancien format
   if(Array.isArray(obj.loan365History)) loan365History = obj.loan365History;
   else if(obj.override365) loan365History = [{date: todayISO(), amount: parseFloat(obj.override365)}]; // migration ancien format
+  if(Array.isArray(obj.estimateHistory)) estimateHistory = obj.estimateHistory;
   sortHistoryDesc(balanceHistory); sortHistoryDesc(loan366History); sortHistoryDesc(loan365History);
+  sortHistoryAsc(estimateHistory);
   if(balanceHistory.length) applyBalanceFromHistory();
   applyLoanFromHistory('366');
   applyLoanFromHistory('365');
   renderBalanceHistory();
   renderLoanHistory('366');
   renderLoanHistory('365');
+  renderEstimateHistory();
   updateSegLabels();
   updatePresetButtons();
   updateOverrideInfo();
@@ -999,6 +1119,7 @@ document.getElementById('targetDateInput').addEventListener('input', renderCusto
 document.getElementById('preset366').addEventListener('click', ()=>{ document.getElementById('targetDateInput').value=document.getElementById('preset366').dataset.ym; renderCustom(); });
 document.getElementById('preset365').addEventListener('click', ()=>{ document.getElementById('targetDateInput').value=document.getElementById('preset365').dataset.ym; renderCustom(); });
 document.getElementById('addBalanceEntry').addEventListener('click', addBalanceEntry);
+document.getElementById('addEstimateEntry').addEventListener('click', addEstimateEntry);
 document.getElementById('add366').addEventListener('click', ()=>addLoanEntry('366'));
 document.getElementById('reset366').addEventListener('click', ()=>resetLoanHistory('366'));
 document.getElementById('add365').addEventListener('click', ()=>addLoanEntry('365'));
@@ -1019,12 +1140,14 @@ document.getElementById('importBtn').addEventListener('click', importFromJsonBin
 document.getElementById('balanceEntryDate').value = todayISO();
 document.getElementById('override366Date').value = todayISO();
 document.getElementById('override365Date').value = todayISO();
+document.getElementById('estimateEntryDate').min = todayISO();
 updateSegLabels();
 updatePresetButtons();
 updateOverrideInfo();
 renderBalanceHistory();
 renderLoanHistory('366');
 renderLoanHistory('365');
+renderEstimateHistory();
 document.getElementById('jsonbinKeyInput').value = localStorage.getItem(JSONBIN_KEY_STORAGE) || '';
 document.getElementById('jsonbinIdInput').value = localStorage.getItem(JSONBIN_BIN_STORAGE) || '';
 if(!loadLocal()) render();
