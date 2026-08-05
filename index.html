@@ -55,11 +55,11 @@
   label{display:block;font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;}
   label:last-child{margin-bottom:0;}
   .input-euro{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;margin-top:6px;overflow:hidden;background:var(--paper);}
-  .input-euro input{border:none;background:transparent;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:16px;color:var(--ink);width:100%;min-width:0;}
-  .input-euro input:focus{outline:none;}
+  div.input-euro input{border:none;background:transparent;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:16px;color:var(--ink);width:100%;min-width:0;margin-top:0;border-radius:0;}
+  div.input-euro input:focus{outline:none;}
   .input-euro span{padding:0 12px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
   input[type=range]{width:100%;margin-top:12px;accent-color:var(--gold);}
-  input[type=month], input[type=date]{border:none;background:transparent;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--ink);width:100%;min-width:0;}
+  input[type=month], input[type=date]{-webkit-appearance:none;appearance:none;border:none;background:transparent;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--ink);width:100%;min-width:0;}
   input[type=month]:focus, input[type=date]:focus{outline:none;}
   .input-date{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper);margin-top:6px;}
   .rate-value{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;margin-top:2px;}
@@ -100,10 +100,10 @@
   .sync-error{color:var(--brick);font-weight:500;}
   .btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
   .override-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin:6px 0 0;line-height:1.6;}
-  .date-amount-row{margin-top:6px;}
-  .date-amount-row .input-date{width:auto;display:inline-block;margin-top:0;margin-bottom:8px;border-radius:8px;}
-  .date-amount-row .input-date input{padding:7px 12px;font-size:13px;color:var(--ink-soft);}
-  .date-amount-row .input-euro{margin-top:0;}
+  .date-amount-row{margin-top:6px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;}
+  .date-amount-row .input-date{width:auto;margin-top:0;margin-bottom:0;border-radius:8px;min-height:34px;box-sizing:border-box;}
+  .date-amount-row .input-date input{padding:7px 12px;font-size:13px;color:var(--ink-soft);min-height:34px;box-sizing:border-box;}
+  .date-amount-row .input-euro{margin-top:0;width:100%;box-sizing:border-box;}
   .hist-list{margin-top:4px;}
   .hist-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);}
   .hist-row:last-child{border-bottom:none;}
@@ -157,7 +157,7 @@
 
     h2{ font-size:19px; margin-bottom:22px; }
     label{ font-size:15.5px; margin-bottom:24px; }
-    .input-euro input{ font-size:18px; padding:13px 15px; }
+    div.input-euro input{ font-size:18px; padding:13px 15px; }
     .input-euro span{ font-size:13px; padding:0 15px; }
     input[type=month], input[type=date]{ font-size:17px; padding:13px 15px; }
     .rate-value{ font-size:20px; }
@@ -370,7 +370,7 @@
 
 <footer>
   <p>Estimation indicative construite à partir des tableaux d'amortissement transmis (soldes réels par échéance) et d'un rendement de placement hypothétique et réglable. Elle ne remplace pas un chiffrage officiel&nbsp;: demandez à votre Caisse de Crédit Mutuel une confirmation du solde exact et du montant de l'indemnité avant tout remboursement anticipé.</p>
-  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-08-04-v15</p>
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-08-04-v17</p>
 </footer>
 
 <script>
