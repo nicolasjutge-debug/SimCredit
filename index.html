@@ -250,6 +250,7 @@
       <button type="button" class="preset-btn" id="preset366">Fin naturelle prêt 366 — juin 2033</button>
       <button type="button" class="preset-btn" id="preset365">Fin naturelle prêt 365 — juin 2042</button>
     </div>
+    <p class="override-info" id="naturalEndSource"></p>
     <div class="result-grid" style="margin-top:20px;">
       <div><span>Effort mensuel nécessaire</span><strong id="customContrib">—</strong></div>
       <div><span>Montant à mobiliser à cette date</span><strong id="customNeed">—</strong></div>
@@ -380,7 +381,7 @@
 
 <footer>
   <p>Estimation indicative construite à partir des tableaux d'amortissement transmis (soldes réels par échéance) et d'un rendement de placement hypothétique et réglable. Elle ne remplace pas un chiffrage officiel&nbsp;: demandez à votre Caisse de Crédit Mutuel une confirmation du solde exact et du montant de l'indemnité avant tout remboursement anticipé.</p>
-  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-11-01-v19</p>
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-11-01-v20</p>
 </footer>
 
 <script>
@@ -744,7 +745,16 @@ function updatePresetButtons(){
   btn366.dataset.ym = NATURAL_END_366.slice(0,7);
   btn365.dataset.ym = NATURAL_END_365.slice(0,7);
 }
+function updateNaturalEndNote(){
+  const el = document.getElementById('naturalEndSource');
+  if(!el) return;
+  const parts = [];
+  if(loan365History.length && NATURAL_END_365 !== NATURAL_END_365_ORIGINAL) parts.push(`prêt 365 : fin recalculée d'après votre relevé du ${fmtDateFR(loan365History[0].date)} (tableau d'origine : ${fmtMonthYear(NATURAL_END_365_ORIGINAL).toLowerCase()})`);
+  if(loan366History.length && NATURAL_END_366 !== NATURAL_END_366_ORIGINAL) parts.push(`prêt 366 : fin recalculée d'après votre relevé du ${fmtDateFR(loan366History[0].date)} (tableau d'origine : ${fmtMonthYear(NATURAL_END_366_ORIGINAL).toLowerCase()})`);
+  el.textContent = parts.length ? parts.join(' · ') + '. Pour revenir au tableau d\u2019origine : « Réinitialiser » dans « Ajuster le capital restant dû ».' : '';
+}
 function updateOverrideInfo(){
+  updateNaturalEndNote();
   document.getElementById('override366info').textContent = `Mensualité estimée : ${fmtEUR2(PAY_366)}/mois · Valeur du tableau d'origine : ${fmtEUR2(CURRENT_L366_ORIGINAL)} · Date de fin actuelle : ${fmtMonthYear(NATURAL_END_366)}`;
   document.getElementById('override365info').textContent = `Mensualité estimée : ${fmtEUR2(PAY_365)}/mois · Valeur du tableau d'origine : ${fmtEUR2(CURRENT_L365_ORIGINAL)} · Date de fin actuelle : ${fmtMonthYear(NATURAL_END_365)}`;
 }
@@ -752,7 +762,7 @@ function updateOverrideInfo(){
 // ---- Historique daté (journal de relevés) : solde placement + restant dû par prêt ----
 let balanceHistory = [];
 let loan366History = [];
-let loan365History = [];
+let loan365History = [{date:'2026-10-05', amount:51257.34}];
 
 function todayISO(){
   const d = new Date();
@@ -768,26 +778,57 @@ function sortHistoryDesc(hist){
 }
 
 // ---- Rendement observé d'après le journal (recalculé à chaque relevé ajouté ou supprimé) ----
-// Rendement annualisé = croissance composée entre relevés consécutifs ramenée à 365 j ; les versements mensuels des mois civils franchis sont déduits.
+// Rendement annualisé : taux annualisé résolu sur les flux datés (solde initial, versements mensuels aux débuts des mois civils franchis, solde final).
 // Sous AUTO_RATE_MIN_DAYS jours de journal, le taux est affiché mais pas appliqué (trop instable) ; une fois appliqué, il reste dans la plage du curseur (0–6 %).
 const AUTO_RATE_MIN_DAYS = 30;
 let autoRate = true;
 const fmtPct2 = v => v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' %';
 function setAutoRate(on){ autoRate = on; const t = document.getElementById('autoRateToggle'); if(t) t.checked = on; }
 function observedRate(){
-  const h = balanceHistory.slice().reverse();   // journal trié par date décroissante → ordre chronologique
-  let logSum = 0, days = 0;
+  const h = balanceHistory.slice().reverse(); // ordre chronologique
+  let weightedLog = 0, totalDays = 0;
   for(let i=1;i<h.length;i++){
     const a = h[i-1], b = h[i];
-    const d = Math.round((new Date(b.date+'T00:00:00') - new Date(a.date+'T00:00:00'))/864e5);
-    if(d<=0 || !(a.amount>0)) continue;
-    const dep = (monthIndexFromDate(b.date) - monthIndexFromDate(a.date)) * state.contrib;
-    const g = (b.amount - dep) / a.amount;
-    if(g<=0) continue;
-    logSum += Math.log(g); days += d;
+    const start = new Date(a.date+'T00:00:00');
+    const finish = new Date(b.date+'T00:00:00');
+    const days = Math.round((finish-start)/864e5);
+    if(days<=0 || !(a.amount>0) || !(b.amount>0)) continue;
+
+    // Flux datés : solde initial, versements mensuels aux débuts des mois
+    // civils franchis, puis solde final. Cela tient compte de la capitalisation
+    // des versements au lieu de les retrancher en bloc à la date du relevé.
+    const flows = [{date:start, amount:-a.amount}];
+    let y = start.getFullYear(), m = start.getMonth()+1;
+    let depositDate = new Date(y, m, 1);
+    while(depositDate <= finish){
+      flows.push({date:depositDate, amount:-Math.max(0, Number(state.contrib)||0)});
+      depositDate = new Date(depositDate.getFullYear(), depositDate.getMonth()+1, 1);
+    }
+    flows.push({date:finish, amount:b.amount});
+
+    const baseMs = start.getTime();
+    const npv = annualRate => flows.reduce((sum, f) => {
+      const t = (f.date.getTime()-baseMs)/864e5/365;
+      return sum + f.amount / Math.pow(1+annualRate, t);
+    }, 0);
+
+    // Recherche du taux annualisé effectif par dichotomie (taux > -100 %).
+    let lo = -0.999999, hi = 10;
+    let nlo = npv(lo), nhi = npv(hi);
+    while(nlo*nhi > 0 && hi < 1e6){ hi *= 2; nhi = npv(hi); }
+    if(!Number.isFinite(nlo) || !Number.isFinite(nhi) || nlo*nhi > 0) continue;
+    for(let j=0;j<100;j++){
+      const mid = (lo+hi)/2, nm = npv(mid);
+      if((nlo<=0 && nm<=0) || (nlo>=0 && nm>=0)){ lo=mid; nlo=nm; }
+      else { hi=mid; nhi=nm; }
+    }
+    const intervalRate = (lo+hi)/2;
+    if(!Number.isFinite(intervalRate) || intervalRate<=-1) continue;
+    weightedLog += Math.log1p(intervalRate)*days;
+    totalDays += days;
   }
-  if(days<=0) return null;
-  return {rate: Math.exp(logSum*365/days) - 1, days, from: h[0].date, to: h[h.length-1].date};
+  if(totalDays<=0) return null;
+  return {rate: Math.expm1(weightedLog/totalDays), days:totalDays, from:h[0].date, to:h[h.length-1].date};
 }
 function syncAutoRate(){
   if(!autoRate) return;
@@ -950,12 +991,19 @@ function applyLoanFromHistory(loanKey){
     // qui confirme simplement une période de différé, sans déclencher un amortissement prématuré).
     const origAtDate = k < 0 ? origCurrent : (origArr[k] ? origArr[k][2] : origArr[origArr.length-1][2]);
     const confirmsOriginal = Math.abs(entry.amount - origAtDate) < 1;
+    // Phase de différé du tableau d'origine (solde plat, ex. prêt 365) : elle va jusqu'à son terme, l'amortissement ne reprend qu'ensuite.
+    let defer = 0; while(defer < origArr.length && Math.abs(origArr[defer][2]-origCurrent) < 0.005) defer++;
     let newCurrent, newArr;
     if(confirmsOriginal){
       // Le relevé confirme le tableau d'origine à cette date (ex. capital encore bloqué en différé) :
       // on garde le tableau d'origine tel quel plutôt que de repartir sur un amortissement immédiat.
       newCurrent = origCurrent;
       newArr = origArr.slice();
+    } else if(k < defer){
+      const k0 = Math.max(k,0);
+      newCurrent = k<0 ? entry.amount : origCurrent;
+      const flat = []; for(let i=k0;i<defer;i++) flat.push([38+i, dateAtIndex(i), entry.amount]);
+      newArr = origArr.slice(0,k0).concat(flat, buildAmortizedSchedule(entry.amount, rate, pay, defer));
     } else if(k < 0){
       // Le relevé est antérieur à la grille (== repère "aujourd'hui") : comportement d'origine.
       newCurrent = entry.amount;
@@ -1066,6 +1114,9 @@ function applyState(obj){
   else if(obj.override366) loan366History = [{date: todayISO(), amount: parseFloat(obj.override366)}]; // migration ancien format
   if(Array.isArray(obj.loan365History)) loan365History = obj.loan365History;
   else if(obj.override365) loan365History = [{date: todayISO(), amount: parseFloat(obj.override365)}]; // migration ancien format
+  // Relevé communiqué : remplace toute valeur antérieure à la même date.
+  loan365History = loan365History.filter(e=>e.date!=='2026-10-05');
+  loan365History.push({date:'2026-10-05', amount:51257.34});
   if(Array.isArray(obj.estimateHistory)) estimateHistory = obj.estimateHistory;
   sortHistoryDesc(balanceHistory); sortHistoryDesc(loan366History); sortHistoryDesc(loan365History);
   sortHistoryAsc(estimateHistory);
@@ -1239,6 +1290,7 @@ document.getElementById('override365Date').value = todayISO();
 document.getElementById('estimateEntryDate').min = todayISO();
 updateSegLabels();
 updatePresetButtons();
+applyLoanFromHistory('365');
 updateOverrideInfo();
 renderBalanceHistory();
 renderLoanHistory('366');
