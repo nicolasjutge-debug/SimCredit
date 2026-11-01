@@ -57,6 +57,7 @@
   .input-euro{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;margin-top:6px;overflow:hidden;background:var(--paper);}
   div.input-euro input{border:none;background:transparent;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:16px;color:var(--ink);width:100%;min-width:0;margin-top:0;border-radius:0;}
   div.input-euro input:focus{outline:none;}
+  div.input-euro input[readonly]{color:var(--ink-soft);cursor:default;}
   .input-euro span{padding:0 12px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
   input[type=range]{width:100%;margin-top:12px;accent-color:var(--gold);}
   input[type=month], input[type=date]{-webkit-appearance:none;appearance:none;border:none;background:transparent;padding:10px 12px;font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--ink);width:100%;min-width:0;}
@@ -262,8 +263,10 @@
     </label>
     <label>Solde actuel du placement
       <div class="input-euro"><input type="number" id="balanceInput" value="29386.85" step="100" min="0"><span>€</span></div>
+      <p class="hint" id="balanceHint" hidden>Calculé d'après le dernier relevé du journal ci-dessous. Pour le corriger, ajoutez un nouveau relevé.</p>
     </label>
     <label>Journal des relevés (optionnel)
+      <p class="hint">Le relevé le plus récent fait foi pour son mois&nbsp;: il contient déjà le versement de ce mois, et la projection n'ajoute que les versements des mois suivants.</p>
       <div class="date-amount-row">
         <div class="input-date"><input type="date" id="balanceEntryDate"></div>
         <div class="input-euro"><input type="text" inputmode="decimal" id="balanceEntryAmount" placeholder="montant"><span>€</span></div>
@@ -370,7 +373,7 @@
 
 <footer>
   <p>Estimation indicative construite à partir des tableaux d'amortissement transmis (soldes réels par échéance) et d'un rendement de placement hypothétique et réglable. Elle ne remplace pas un chiffrage officiel&nbsp;: demandez à votre Caisse de Crédit Mutuel une confirmation du solde exact et du montant de l'indemnité avant tout remboursement anticipé.</p>
-  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-08-04-v18</p>
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-11-01-v19</p>
 </footer>
 
 <script>
@@ -424,14 +427,6 @@ function gridIndexForDate(iso){
   if(d.getDate() < base.getDate()) months -= 1;
   return months;
 }
-// Nombre de mois pleins entre deux dates ISO (peut être négatif).
-function monthsBetween(fromISO, toISO){
-  const a = new Date(fromISO+"T00:00:00");
-  const b = new Date(toISO+"T00:00:00");
-  let months = (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth());
-  if(b.getDate() < a.getDate()) months -= 1;
-  return months;
-}
 // startBalance = valeur AVANT le paiement de l'échéance startIdx (mêmes conventions que le tableau d'origine pour startIdx=0).
 function buildAmortizedSchedule(startBalance, annualRate, payment, startIdx){
   if(startIdx === undefined) startIdx = 0;
@@ -466,7 +461,7 @@ function fmtShort(iso){
   return s.charAt(0).toUpperCase()+s.slice(1);
 }
 
-// ---- m indexing: m=0 = aujourd'hui (juil. 2026, avant échéance 38) ; m=1 = échéance 38 (août 2026) ; etc. ----
+// ---- m indexing (grille fixe, calée sur le calendrier) : m=0 = repère de départ (juil. 2026, avant échéance 38) ; m=1 = échéance 38 (août 2026) ; m=4 = novembre 2026 ; etc. ----
 function monthIndexFromDate(ymStr){
   const [y,mo] = ymStr.split('-').map(Number);
   const base = 2026*12+7;
@@ -494,15 +489,49 @@ function requiredContribution(m, T, balance0, annualRate){
   return (T - balance0*growth) * mr / (growth-1);
 }
 
+function gridLength(){ return Math.max(loan365.length, loan366.length); }
+// Indice de grille du mois en cours (0 = juil. 2026, 4 = nov. 2026…).
+function currentMonthIndex(){ return monthIndexFromDate(todayISO()); }
+
+// Point d'ancrage du placement : { m, bal } = solde au mois d'indice m de la grille.
+//  - Sans journal : « Solde actuel » saisi (state.balance0), posé au repère m=0 de la grille (comportement d'origine).
+//  - Avec journal : le relevé le plus récent, posé À SA VRAIE PLACE dans la grille (le mois de sa date).
+//    Un relevé contient déjà tous les versements jusqu'à son mois inclus : la projection ne rajoute QUE ceux des mois suivants.
+//    (Avant : le relevé était posé au repère m=0 puis tous les versements depuis août 2026 étaient recomptés par-dessus.)
+function projectionBase(){
+  if(!balanceHistory.length) return {m:0, bal:state.balance0};
+  const e = balanceHistory[0];                       // liste triée par date décroissante : le plus récent fait foi
+  const mr = Math.pow(1+state.rate, 1/12) - 1;
+  let m = monthIndexFromDate(e.date), bal = e.amount;
+  while(m < 0){ bal = bal*(1+mr) + state.contrib; m++; }   // relevé antérieur à la grille : on le ramène au repère m=0
+  return {m: Math.min(m, gridLength()), bal};
+}
+// Origine affichée (« Aujourd'hui ») : le mois en cours, ou le mois du relevé s'il est plus récent.
+// bal = solde à ce mois (le relevé tel quel, ou le relevé projeté mois par mois jusqu'au mois en cours).
+function projectionOrigin(){
+  const base = projectionBase();
+  const mr = Math.pow(1+state.rate, 1/12) - 1;
+  const m0 = Math.max(base.m, Math.min(Math.max(currentMonthIndex(), 0), gridLength()));
+  let bal = base.bal;
+  for(let m=base.m+1; m<=m0; m++) bal = bal*(1+mr) + state.contrib;
+  return {m0, bal};
+}
+
 function simulate(){
   const mr = Math.pow(1+state.rate, 1/12) - 1;
+  const n = gridLength();
+  const base = projectionBase();
+  // Soldes du placement : ancrés sur le point de départ, projetés vers l'avant (1 versement par mois SUIVANT l'ancrage).
+  // Les mois antérieurs à l'ancrage sont reconstitués pour garder des lignes cohérentes (ils ne sont ni affichés ni utilisés).
+  const bals = new Array(n+1);
+  bals[base.m] = base.bal;
+  for(let m=base.m-1; m>=0; m--) bals[m] = Math.max(0, (bals[m+1] - state.contrib)/(1+mr));
+  for(let m=base.m+1; m<=n; m++) bals[m] = bals[m-1]*(1+mr) + state.contrib;
   const rows = [];
-  rows.push({m:0,date:null,bal:state.balance0,l365:CURRENT_L365,l366:CURRENT_L366,
+  rows.push({m:0,date:null,bal:bals[0],l365:CURRENT_L365,l366:CURRENT_L366,
     need365:CURRENT_L365*(1+penRate(0.0106)), need366:CURRENT_L366*(1+penRate(0.0075))});
-  let bal = state.balance0;
-  const n = Math.max(loan365.length, loan366.length);
   for(let idx=0; idx<n; idx++){
-    bal = bal*(1+mr) + state.contrib;
+    const bal = bals[idx+1];
     const l365 = idx < loan365.length ? loan365[idx][2] : 0;
     const l366 = idx < loan366.length ? loan366[idx][2] : 0;
     const date = dateAtIndex(idx);
@@ -523,8 +552,8 @@ function loanBalOf(row){
   if(state.loan==='365') return row.l365;
   return row.l365 + row.l366;
 }
-function findCrossing(rows){
-  for(let k=1;k<rows.length;k++){
+function findCrossing(rows, m0){
+  for(let k=Math.max(1, m0||0);k<rows.length;k++){
     const row = rows[k];
     const need = needOf(row);
     if(need<=0) continue;
@@ -533,20 +562,21 @@ function findCrossing(rows){
   return null;
 }
 
-function drawChart(rows, cross){
+function drawChart(rows, cross, m0){
   const W=720,H=380,padL=54,padR=14,padT=18,padB=34;
   const plotW=W-padL-padR, plotH=H-padT-padB;
   let mMax = rows.length-1;
-  if(cross){ mMax = Math.min(rows.length-1, Math.max(cross.m+6, Math.ceil(cross.m*1.25))); }
-  else { mMax = Math.min(rows.length-1, 84); }
+  if(cross){ const horizon = cross.m - m0; mMax = Math.min(rows.length-1, m0 + Math.max(horizon+6, Math.ceil(horizon*1.25))); }
+  else { mMax = Math.min(rows.length-1, m0 + 84); }
+  const span = Math.max(1, mMax - m0);
   let vMax = 0;
-  for(let m=0;m<=mMax;m++){ vMax = Math.max(vMax, rows[m].bal, needOf(rows[m])); }
+  for(let m=m0;m<=mMax;m++){ vMax = Math.max(vMax, rows[m].bal, needOf(rows[m])); }
   vMax = vMax*1.12;
-  const x = m => padL + (m/mMax)*plotW;
+  const x = m => padL + ((m-m0)/span)*plotW;
   const y = v => padT + plotH - (v/vMax)*plotH;
   function pathFor(fn){
     let d='';
-    for(let m=0;m<=mMax;m++){ d += (m===0?'M':'L') + x(m).toFixed(1) + ' ' + y(fn(rows[m])).toFixed(1) + ' '; }
+    for(let m=m0;m<=mMax;m++){ d += (m===m0?'M':'L') + x(m).toFixed(1) + ' ' + y(fn(rows[m])).toFixed(1) + ' '; }
     return d;
   }
   const goldPath = pathFor(r=>r.bal);
@@ -559,13 +589,13 @@ function drawChart(rows, cross){
     grid += `<text x="${padL-8}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-faint)">${Math.round(v/1000)}k</text>`;
   }
   let xticks='';
-  for(let m=0;m<=mMax;m+=12){
+  for(let m=m0;m<=mMax;m+=12){
     const xx=x(m);
     xticks += `<line x1="${xx.toFixed(1)}" y1="${padT}" x2="${xx.toFixed(1)}" y2="${padT+plotH}" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 3" opacity="0.6"/>`;
-    const label = m===0 ? 'Auj.' : fmtShort(rows[m].date);
+    const label = m===m0 ? 'Auj.' : fmtShort(rows[m].date);
     xticks += `<text x="${xx.toFixed(1)}" y="${padT+plotH+16}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-faint)">${label}</text>`;
   }
-  if(mMax % 12 !== 0){
+  if((mMax - m0) % 12 !== 0){
     const xx=x(mMax); const label=fmtShort(rows[mMax].date);
     xticks += `<text x="${xx.toFixed(1)}" y="${padT+plotH+16}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-faint)">${label}</text>`;
   }
@@ -591,17 +621,17 @@ function drawChart(rows, cross){
   });
 }
 
-function renderTable(rows, cross){
-  const mMax = cross ? Math.min(rows.length-1, cross.m+6) : Math.min(rows.length-1, 60);
+function renderTable(rows, cross, m0){
+  const mMax = cross ? Math.min(rows.length-1, cross.m+6) : Math.min(rows.length-1, m0+60);
   let html='';
-  for(let m=0;m<=mMax;m++){
+  for(let m=m0;m<=mMax;m++){
     const r = rows[m];
     const isCross = cross && r.m===cross.m;
-    const dateLabel = m===0 ? "Aujourd'hui" : fmtMonthYear(r.date);
+    const dateLabel = m===m0 ? "Aujourd'hui" : fmtMonthYear(r.date);
     html += `<tr class="${isCross?'cross-row':''}"><td>${dateLabel}</td><td>${fmtEUR0(r.bal)}</td><td>${fmtEUR0(needOf(r))}</td></tr>`;
   }
   document.getElementById('detailBody').innerHTML = html;
-  document.getElementById('detailCount').textContent = `(${mMax} échéances)`;
+  document.getElementById('detailCount').textContent = `(${mMax-m0} échéances)`;
 }
 
 function renderNaturalEnd(){
@@ -624,9 +654,12 @@ function renderCustom(){
     return;
   }
   const m = monthIndexFromDate(val);
-  if(m<=0){
+  const origin = projectionOrigin();   // départ de la projection : mois en cours (ou mois du dernier relevé s'il est plus récent)
+  if(m <= origin.m0){
     [contribEl,needEl,iraEl,balEl].forEach(el=>el.textContent='—');
-    noteEl.textContent = "Choisissez une date future (à partir d'août 2026).";
+    noteEl.textContent = origin.m0 > 0
+      ? `Choisissez un mois postérieur à ${fmtMonthYear(dateAtIndex(origin.m0-1)).toLowerCase()}.`
+      : "Choisissez une date future (à partir d'août 2026).";
     return;
   }
   const {need, loanBal} = neededAt(m, state.loan);
@@ -638,33 +671,53 @@ function renderCustom(){
   needEl.textContent = fmtEUR0(need);
   iraEl.textContent = fmtEUR0(need-loanBal);
   balEl.textContent = fmtEUR0(loanBal);
-  const req = requiredContribution(m, need, state.balance0, state.rate);
+  const months = m - origin.m0;   // versements restant à effectuer entre le point de départ et la date cible
+  const req = requiredContribution(months, need, origin.bal, state.rate);
   if(req<=0){
     contribEl.textContent = '0 €';
     noteEl.textContent = "Votre solde actuel suffit déjà, avec la seule croissance du placement, à couvrir ce montant d'ici cette date : aucun versement supplémentaire n'est nécessaire.";
   } else {
     contribEl.textContent = fmtEUR0(req) + ' /mois';
-    noteEl.textContent = `Soit sur ${m} mois, à ${state.rate*100} % de rendement annuel supposé (réglage ci-dessous). Ce montant remplace, pour cette simulation, le versement mensuel de la section précédente.`;
+    noteEl.textContent = `Soit sur ${months} mois, à ${state.rate*100} % de rendement annuel supposé (réglage ci-dessous). Ce montant remplace, pour cette simulation, le versement mensuel de la section précédente.`;
   }
+}
+
+// Champ « Solde actuel » : avec un journal, il affiche le solde calculé (lecture seule) ; sans journal, il reste librement modifiable.
+function syncBalanceField(origin){
+  const input = document.getElementById('balanceInput');
+  const hint = document.getElementById('balanceHint');
+  const fromJournal = balanceHistory.length > 0;
+  input.readOnly = fromJournal;
+  hint.hidden = !fromJournal;
+  if(fromJournal) input.value = Math.round(origin.bal*100)/100;
+}
+// Premier mois sélectionnable dans « Simuler une date choisie » = le mois qui suit l'origine.
+function syncTargetMin(m0){
+  document.getElementById('targetDateInput').min = dateAtIndex(m0).slice(0,7);
 }
 
 function render(){
   const rows = simulate();
-  const cross = findCrossing(rows);
+  const origin = projectionOrigin();
+  const m0 = origin.m0;
+  const cross = findCrossing(rows, m0);
+  syncBalanceField(origin);
+  syncTargetMin(m0);
   if(cross){
     document.getElementById('resultDate').textContent = fmtMonthYear(cross.date);
     document.getElementById('needAmount').textContent = fmtEUR0(needOf(cross));
     document.getElementById('iraAmount').textContent = fmtEUR0(needOf(cross)-loanBalOf(cross));
     document.getElementById('loanAmount').textContent = fmtEUR0(loanBalOf(cross));
     document.getElementById('investAmount').textContent = fmtEUR0(cross.bal);
-    document.getElementById('resultNote').textContent = `Soit dans ${cross.m} mois. Au-delà de cette échéance, le placement dépasse durablement le capital restant dû plus l'indemnité.`;
+    const monthsLeft = cross.m - m0;
+    document.getElementById('resultNote').textContent = `${monthsLeft > 0 ? `Soit dans ${monthsLeft} mois.` : 'Soit dès ce mois-ci.'} Au-delà de cette échéance, le placement dépasse durablement le capital restant dû plus l'indemnité.`;
   } else {
     document.getElementById('resultDate').textContent = "Non atteint sur l'horizon du prêt";
     ['needAmount','iraAmount','loanAmount','investAmount'].forEach(id=>document.getElementById(id).textContent='—');
     document.getElementById('resultNote').textContent = 'Avec ces hypothèses, le placement ne rattrape pas le capital restant dû avant la fin du prêt sélectionné.';
   }
-  drawChart(rows, cross);
-  renderTable(rows, cross);
+  drawChart(rows, cross, m0);
+  renderTable(rows, cross, m0);
   renderNaturalEnd();
   renderCustom();
   renderEstimateInfo();
@@ -707,16 +760,10 @@ function sortHistoryDesc(hist){
 }
 
 // ---- Journal : solde NaviG'Options ----
+// Le relevé le plus récent sert d'ancrage à la projection (voir projectionBase) ; render() recalcule tout et met le champ « Solde actuel » à jour.
 function applyBalanceFromHistory(){
-  if(balanceHistory.length){
-    const entry = balanceHistory[0];
-    const n = Math.max(0, monthsBetween(entry.date, todayISO()));
-    const mr = Math.pow(1+state.rate, 1/12) - 1;
-    let bal = entry.amount;
-    for(let i=0;i<n;i++){ bal = bal*(1+mr) + state.contrib; }
-    state.balance0 = Math.round(bal*100)/100;
-    document.getElementById('balanceInput').value = state.balance0;
-  }
+  // Journal vidé : on revient au solde de départ saisi à la main.
+  if(!balanceHistory.length) document.getElementById('balanceInput').value = state.balance0;
   render();
 }
 function addBalanceEntry(){
@@ -783,22 +830,23 @@ function renderEstimateInfo(){
   if(!infoEl) return;
   if(!estimateHistory.length){ infoEl.innerHTML=''; return; }
   const next = estimateHistory[0]; // trié par date croissante : la prochaine échéance dans le futur
-  const m = monthIndexFromDate(next.date);
+  const origin = projectionOrigin();
+  const m = monthIndexFromDate(next.date) - origin.m0;   // mois restant à courir depuis le point de départ de la projection
   if(m<=0){
     infoEl.innerHTML = `${fmtDateFR(next.date)} n'est pas une date future : aucun calcul possible.`;
     return;
   }
-  const fvAt0 = futureValueAt(m, state.balance0, state.contrib, 0);
+  const fvAt0 = futureValueAt(m, origin.bal, state.contrib, 0);
   if(fvAt0 >= next.amount){
     infoEl.innerHTML = `Avec le versement actuel (${fmtEUR0(state.contrib)}/mois), cette estimation serait déjà dépassée même sans aucun rendement.`;
     return;
   }
-  const fvAt6 = futureValueAt(m, state.balance0, state.contrib, 0.06);
+  const fvAt6 = futureValueAt(m, origin.bal, state.contrib, 0.06);
   if(fvAt6 < next.amount){
     infoEl.innerHTML = `Même au maximum du curseur (6&nbsp;%), cette estimation ne serait pas atteinte avec le versement actuel — vérifiez le montant, la date, ou augmentez le versement mensuel.`;
     return;
   }
-  const rate = requiredRateForTarget(m, next.amount, state.balance0, state.contrib, 0, 0.06);
+  const rate = requiredRateForTarget(m, next.amount, origin.bal, state.contrib, 0, 0.06);
   const pctStr = (Math.round(rate*10000)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
   infoEl.innerHTML = `Pour atteindre ${fmtEUR2(next.amount)} en ${fmtMonthYear(next.date)}, il faudrait un rendement annuel d'environ <strong>${pctStr}&nbsp;%</strong>. <button type="button" class="preset-btn" id="applyEstimateRateBtn" style="margin-top:10px;">Appliquer ce taux</button>`;
   const btn = document.getElementById('applyEstimateRateBtn');
