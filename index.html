@@ -101,6 +101,9 @@
   .sync-error{color:var(--brick);font-weight:500;}
   .btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
   .override-info{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin:6px 0 0;line-height:1.6;}
+  .auto-rate{margin:2px 0 22px;}
+  .auto-toggle{display:flex;gap:10px;align-items:flex-start;margin-bottom:0;cursor:pointer;line-height:1.45;}
+  .auto-toggle input[type=checkbox]{width:18px;height:18px;padding:0;margin:1px 0 0;flex:none;accent-color:var(--gold);}
   .date-amount-row{margin-top:6px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;}
   .date-amount-row .input-date{width:auto;margin-top:0;margin-bottom:0;border-radius:8px;min-height:34px;box-sizing:border-box;}
   .date-amount-row .input-date input{padding:7px 12px;font-size:13px;color:var(--ink-soft);min-height:34px;box-sizing:border-box;}
@@ -279,6 +282,10 @@
       <div class="rate-value"><span id="rateValue">3,20 %</span></div>
       <p class="hint">Le placement affiché en répartition est investi à 69,8&nbsp;% en fonds €&nbsp;(garanti, ≈2,2&nbsp;% net en 2025) et 30,2&nbsp;% en unités de compte diversifiées. 3,20&nbsp;% est une hypothèse médiane, pas une garantie — les UC comportent un risque de perte en capital. Ajustez le curseur pour tester d'autres scénarios.</p>
     </label>
+    <div class="auto-rate">
+      <label class="auto-toggle"><input type="checkbox" id="autoRateToggle" checked><span>Mettre à jour le rendement automatiquement d'après le journal des relevés</span></label>
+      <p class="override-info" id="autoRateInfo"></p>
+    </div>
     <label>Estimation cible (optionnel)
       <p class="hint">Si un relevé ou une simulation de votre banque indique une valeur estimée à une date future (ex.&nbsp;: « estimation en 2029 »), ajoutez-la ici, centimes compris&nbsp;: le rendement annuel qu'il faudrait pour l'atteindre est calculé automatiquement, à comparer avec l'hypothèse ci-dessus.</p>
       <div class="date-amount-row">
@@ -721,6 +728,7 @@ function render(){
   renderNaturalEnd();
   renderCustom();
   renderEstimateInfo();
+  renderAutoRateInfo();
 }
 
 function updateSegLabels(){
@@ -759,11 +767,54 @@ function sortHistoryDesc(hist){
   return hist;
 }
 
+// ---- Rendement observé d'après le journal (recalculé à chaque relevé ajouté ou supprimé) ----
+// Rendement annualisé = croissance composée entre relevés consécutifs ramenée à 365 j ; les versements mensuels des mois civils franchis sont déduits.
+// Sous AUTO_RATE_MIN_DAYS jours de journal, le taux est affiché mais pas appliqué (trop instable) ; une fois appliqué, il reste dans la plage du curseur (0–6 %).
+const AUTO_RATE_MIN_DAYS = 30;
+let autoRate = true;
+const fmtPct2 = v => v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' %';
+function setAutoRate(on){ autoRate = on; const t = document.getElementById('autoRateToggle'); if(t) t.checked = on; }
+function observedRate(){
+  const h = balanceHistory.slice().reverse();   // journal trié par date décroissante → ordre chronologique
+  let logSum = 0, days = 0;
+  for(let i=1;i<h.length;i++){
+    const a = h[i-1], b = h[i];
+    const d = Math.round((new Date(b.date+'T00:00:00') - new Date(a.date+'T00:00:00'))/864e5);
+    if(d<=0 || !(a.amount>0)) continue;
+    const dep = (monthIndexFromDate(b.date) - monthIndexFromDate(a.date)) * state.contrib;
+    const g = (b.amount - dep) / a.amount;
+    if(g<=0) continue;
+    logSum += Math.log(g); days += d;
+  }
+  if(days<=0) return null;
+  return {rate: Math.exp(logSum*365/days) - 1, days, from: h[0].date, to: h[h.length-1].date};
+}
+function syncAutoRate(){
+  if(!autoRate) return;
+  const o = observedRate();
+  if(!o || o.days < AUTO_RATE_MIN_DAYS) return;
+  state.rate = Math.min(0.06, Math.max(0, Math.round(o.rate*10000)/10000));
+  document.getElementById('rateInput').value = Math.round(state.rate*10000)/100;
+  document.getElementById('rateValue').textContent = fmtPct2(state.rate*100);
+}
+function renderAutoRateInfo(){
+  const el = document.getElementById('autoRateInfo');
+  if(!el) return;
+  const o = observedRate();
+  if(!o){ el.textContent = 'Ajoutez au moins deux relevés au journal pour calculer le rendement observé.'; return; }
+  let tail;
+  if(!autoRate) tail = 'Mise à jour automatique désactivée.';
+  else if(o.days < AUTO_RATE_MIN_DAYS) tail = `Pas encore appliqué : il faut ${AUTO_RATE_MIN_DAYS} jours de journal (encore ${AUTO_RATE_MIN_DAYS - o.days} j), un taux annualisé sur une période courte est trop instable. Hypothèse conservée : ${fmtPct2(state.rate*100)}.`;
+  else tail = `Appliqué : ${fmtPct2(state.rate*100)}${(o.rate>0.06||o.rate<0) ? ' (borné à la plage du curseur, 0–6 %)' : ''}.`;
+  el.textContent = `Rendement observé : ${fmtPct2(o.rate*100)} / an (${fmtDateFR(o.from)} → ${fmtDateFR(o.to)}, ${o.days} j, versements déduits). ${tail}`;
+}
+
 // ---- Journal : solde NaviG'Options ----
 // Le relevé le plus récent sert d'ancrage à la projection (voir projectionBase) ; render() recalcule tout et met le champ « Solde actuel » à jour.
 function applyBalanceFromHistory(){
   // Journal vidé : on revient au solde de départ saisi à la main.
   if(!balanceHistory.length) document.getElementById('balanceInput').value = state.balance0;
+  syncAutoRate();
   render();
 }
 function addBalanceEntry(){
@@ -818,6 +869,7 @@ function requiredRateForTarget(m, target, balance0, contrib, lo, hi){
   return (lo+hi)/2;
 }
 function applyEstimateRate(rate){
+  setAutoRate(false);
   state.rate = Math.round(rate*100000)/100000;
   const pct = Math.round(state.rate*10000)/100;
   document.getElementById('rateInput').value = pct;
@@ -985,6 +1037,7 @@ function collectState(){
     balance0: state.balance0,
     rate: state.rate,
     loan: state.loan,
+    autoRate: autoRate,
     balanceHistory: balanceHistory,
     loan366History: loan366History,
     loan365History: loan365History,
@@ -1005,6 +1058,7 @@ function applyState(obj){
     state.loan=obj.loan;
     document.querySelectorAll('.seg-btn').forEach(b=>{ b.classList.toggle('active', b.dataset.loan===obj.loan); });
   }
+  if(typeof obj.autoRate==='boolean') setAutoRate(obj.autoRate);
   // Historique daté (nouveau format)
   if(Array.isArray(obj.balanceHistory)) balanceHistory = obj.balanceHistory;
   else if(obj.balance0UpdatedAt && typeof obj.balance0==='number') balanceHistory = [{date: obj.balance0UpdatedAt.slice(0,10), amount: obj.balance0}]; // migration ancien format
@@ -1143,18 +1197,20 @@ document.querySelectorAll('.seg-btn').forEach(btn=>{
     saveLocal();
   });
 });
-document.getElementById('contribInput').addEventListener('input', e=>{ state.contrib = parseFloat(e.target.value)||0; render(); saveLocal(); });
+document.getElementById('contribInput').addEventListener('input', e=>{ state.contrib = parseFloat(e.target.value)||0; syncAutoRate(); render(); saveLocal(); });
 document.getElementById('balanceInput').addEventListener('input', e=>{
   state.balance0 = parseFloat(e.target.value)||0;
   render();
   saveLocal();
 });
 document.getElementById('rateInput').addEventListener('input', e=>{
+  setAutoRate(false);
   state.rate = parseFloat(e.target.value)/100;
   document.getElementById('rateValue').textContent = parseFloat(e.target.value).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' %';
   render();
   saveLocal();
 });
+document.getElementById('autoRateToggle').addEventListener('change', e=>{ autoRate = e.target.checked; syncAutoRate(); render(); saveLocal(); });
 document.getElementById('targetDateInput').addEventListener('input', renderCustom);
 document.getElementById('preset366').addEventListener('click', ()=>{ document.getElementById('targetDateInput').value=document.getElementById('preset366').dataset.ym; renderCustom(); });
 document.getElementById('preset365').addEventListener('click', ()=>{ document.getElementById('targetDateInput').value=document.getElementById('preset365').dataset.ym; renderCustom(); });
