@@ -279,9 +279,10 @@
       <div class="hist-list" id="balanceHistoryList"></div>
     </label>
     <label>Rendement annuel estimé du placement
-      <input type="range" id="rateInput" min="0" max="6" step="0.01" value="3.2">
-      <div class="rate-value"><span id="rateValue">3,20 %</span></div>
-      <p class="hint">Le placement affiché en répartition est investi à 69,8&nbsp;% en fonds €&nbsp;(garanti, ≈2,2&nbsp;% net en 2025) et 30,2&nbsp;% en unités de compte diversifiées. 3,20&nbsp;% est une hypothèse médiane, pas une garantie — les UC comportent un risque de perte en capital. Ajustez le curseur pour tester d'autres scénarios.</p>
+      <div class="input-euro"><input type="text" inputmode="decimal" id="rateManual" autocomplete="off" placeholder="ex. 3,25" aria-label="Rendement annuel NaviG'Options, en pourcentage"><span>% / an</span></div>
+      <input type="range" id="rateInput" min="0" max="6" step="0.01" value="3.2" aria-label="Curseur du rendement annuel">
+      <div class="rate-value" hidden><span id="rateValue">3,20 %</span></div>
+      <p class="hint">Le placement affiché en répartition est investi à 69,8&nbsp;% en fonds €&nbsp;(garanti, ≈2,2&nbsp;% net en 2025) et 30,2&nbsp;% en unités de compte diversifiées. 3,20&nbsp;% est une hypothèse médiane, pas une garantie — les UC comportent un risque de perte en capital. Saisissez le taux au clavier (ex.&nbsp;3,25) ou ajustez le curseur pour tester d'autres scénarios&nbsp;: la saisie manuelle désactive la mise à jour automatique ci-dessous.</p>
     </label>
     <div class="auto-rate">
       <label class="auto-toggle"><input type="checkbox" id="autoRateToggle" checked><span>Mettre à jour le rendement automatiquement d'après le journal des relevés</span></label>
@@ -382,6 +383,7 @@
 <footer>
   <p>Estimation indicative construite à partir des tableaux d'amortissement transmis (soldes réels par échéance) et d'un rendement de placement hypothétique et réglable. Elle ne remplace pas un chiffrage officiel&nbsp;: demandez à votre Caisse de Crédit Mutuel une confirmation du solde exact et du montant de l'indemnité avant tout remboursement anticipé.</p>
   <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-11-01-v20</p>
+  <p style="margin-top:8px;opacity:.7">Version du 1er novembre 2026</p>
 </footer>
 
 <script>
@@ -645,7 +647,7 @@ function renderTable(rows, cross, m0){
 function renderNaturalEnd(){
   const el = document.getElementById('naturalEndNote');
   if(state.loan==='366') el.textContent = `Fin naturelle du prêt (sans anticipation)\u00A0: ${fmtMonthYear(NATURAL_END_366)}`;
-  else if(state.loan==='365') el.textContent = `Fin naturelle du prêt (sans anticipation)\u00A0: ${fmtMonthYear(NATURAL_END_365)}`;
+  else if(state.loan==='365') el.textContent = `Fin naturelle du prêt (sans anticipation)\u00A0: ${fmtMonthYear(NATURAL_END_365)} (dernière échéance le ${fmtDateFR(NATURAL_END_365)})`;
   else el.textContent = `Fins naturelles\u00A0: prêt 366 \u2192 ${fmtMonthYear(NATURAL_END_366)} \u00B7 prêt 365 \u2192 ${fmtMonthYear(NATURAL_END_365)}`;
 }
 
@@ -686,7 +688,7 @@ function renderCustom(){
     noteEl.textContent = "Votre solde actuel suffit déjà, avec la seule croissance du placement, à couvrir ce montant d'ici cette date : aucun versement supplémentaire n'est nécessaire.";
   } else {
     contribEl.textContent = fmtEUR0(req) + ' /mois';
-    noteEl.textContent = `Soit sur ${months} mois, à ${state.rate*100} % de rendement annuel supposé (réglage ci-dessous). Ce montant remplace, pour cette simulation, le versement mensuel de la section précédente.`;
+    noteEl.textContent = `Soit sur ${months} mois, à ${fmtPct2(state.rate*100)} de rendement annuel supposé (réglage ci-dessous). Ce montant remplace, pour cette simulation, le versement mensuel de la section précédente.`;
   }
 }
 
@@ -730,6 +732,7 @@ function render(){
   renderCustom();
   renderEstimateInfo();
   renderAutoRateInfo();
+  syncRateField();
 }
 
 function updateSegLabels(){
@@ -1080,7 +1083,7 @@ const JSONBIN_BIN_STORAGE = 'jsonbin_bin_id_v1';
 
 function collectState(){
   return {
-    v: 2,
+    v: 3,
     contrib: state.contrib,
     balance0: state.balance0,
     rate: state.rate,
@@ -1114,6 +1117,8 @@ function applyState(obj){
   else if(obj.override366) loan366History = [{date: todayISO(), amount: parseFloat(obj.override366)}]; // migration ancien format
   if(Array.isArray(obj.loan365History)) loan365History = obj.loan365History;
   else if(obj.override365) loan365History = [{date: todayISO(), amount: parseFloat(obj.override365)}]; // migration ancien format
+  // Sauvegardes antérieures à la v3 : anciens relevés du prêt 365 purgés une seule fois (ils pouvaient décaler la fin naturelle). Le tableau d'origine (dernière échéance 05/06/2042) fait foi.
+  if(!(obj.v >= 3)) loan365History = [];
   // Relevé communiqué : remplace toute valeur antérieure à la même date.
   loan365History = loan365History.filter(e=>e.date!=='2026-10-05');
   loan365History.push({date:'2026-10-05', amount:51257.34});
@@ -1131,6 +1136,7 @@ function applyState(obj){
   updatePresetButtons();
   updateOverrideInfo();
   render();
+  if(!(obj.v >= 3)) saveLocal();
 }
 function saveLocal(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState())); }catch(e){}
@@ -1261,6 +1267,27 @@ document.getElementById('rateInput').addEventListener('input', e=>{
   render();
   saveLocal();
 });
+// Saisie manuelle du rendement (plus précise que le curseur sur iPhone) : désactive la mise à jour automatique.
+function syncRateField(){
+  const f = document.getElementById('rateManual');
+  if(f && document.activeElement !== f) f.value = (Math.round(state.rate*10000)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+(function(){
+  const f = document.getElementById('rateManual');
+  f.addEventListener('input', ()=>{
+    const v = parseAmount(f.value);
+    if(isNaN(v) || v<0 || v>20) return;
+    const pct = Math.round(v*100)/100;
+    setAutoRate(false);
+    state.rate = pct/100;
+    document.getElementById('rateInput').value = pct;
+    document.getElementById('rateValue').textContent = fmtPct2(pct);
+    render();
+    saveLocal();
+  });
+  f.addEventListener('blur', syncRateField);
+  f.addEventListener('keydown', e=>{ if(e.key==='Enter') f.blur(); });
+})();
 document.getElementById('autoRateToggle').addEventListener('change', e=>{ autoRate = e.target.checked; syncAutoRate(); render(); saveLocal(); });
 document.getElementById('targetDateInput').addEventListener('input', renderCustom);
 document.getElementById('preset366').addEventListener('click', ()=>{ document.getElementById('targetDateInput').value=document.getElementById('preset366').dataset.ym; renderCustom(); });
