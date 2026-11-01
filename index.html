@@ -202,6 +202,16 @@
       grid-column:1 / -1;
     }
   }
+
+  /* iPhone / tactile : 5 lignes visibles maximum par liste ou tableau. Les lignes suivantes défilent DANS la zone : aucune donnée n'est supprimée, tronquée ni exclue des sauvegardes (affichage uniquement). */
+  @media (max-width: 760px), (hover: none) and (pointer: coarse){
+    .hist-list{ max-height:180px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .hist-row{ height:36px; padding-top:0; padding-bottom:0; }
+    .table-scroll{ max-height:217px; -webkit-overflow-scrolling:touch; }
+    .table-scroll th, .table-scroll td{ height:36px; padding-top:0; padding-bottom:0; }
+    .hist-list::-webkit-scrollbar, .table-scroll::-webkit-scrollbar{ -webkit-appearance:none; width:5px; }
+    .hist-list::-webkit-scrollbar-thumb, .table-scroll::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.35); border-radius:3px; }
+  }
 </style>
 </head>
 <body>
@@ -382,7 +392,7 @@
 
 <footer>
   <p>Estimation indicative construite à partir des tableaux d'amortissement transmis (soldes réels par échéance) et d'un rendement de placement hypothétique et réglable. Elle ne remplace pas un chiffrage officiel&nbsp;: demandez à votre Caisse de Crédit Mutuel une confirmation du solde exact et du montant de l'indemnité avant tout remboursement anticipé.</p>
-  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-11-01-v20</p>
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:16px;">build 2026-11-01-v21</p>
   <p style="margin-top:8px;opacity:.7">Version du 1er novembre 2026</p>
 </footer>
 
